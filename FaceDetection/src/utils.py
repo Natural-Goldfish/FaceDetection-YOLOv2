@@ -12,7 +12,7 @@ def custom_collate_fn(batch):
 
 def iou(B_boxes1, B_boxes2):
     """
-    This method is getting IOU(Intersection of Union) between B_boxes1 and B_boxes2
+    This function is to get IOU(Intersection of Union) between B_boxes1 and B_boxes2
     B_boxes1 should be Ground truth boxes and B_boxes2 should be pred_boxes or anchor boxes
     """
     Bb1x1, Bb2x1 = B_boxes1[:, 0] - B_boxes1[:, 2]/2, B_boxes2[:, 0] - B_boxes2[: ,2]/2
@@ -52,6 +52,3 @@ def test_image_processing(image, image_size):
     image = torch.tensor(np.transpose(image, (2, 0, 1)), dtype = torch.float32)
     image = image.unsqueeze(0)
     return image
-
-if __name__ == "__main__":
-    help(iou)
