@@ -10,9 +10,8 @@ def get_args():
     parser.add_argument('--epochs', type = int, default = 100)
     parser.add_argument('--coord_scale', type = float, default = 5)
     parser.add_argument('--noobj_scale', type = float, default = 0.5)
-    parser.add_argument('--dataset_path', type = str, default = 'data/')
-    parser.add_argument('--load_model_path', type = str, default = 'models/')
-    parser.add_argument('--save_model_path', type = str, default = 'models/')
+    parser.add_argument('--dataset_path', type = str, default = 'data')
+    parser.add_argument('--model_path', type = str, default = 'data\\models')
 
     args = parser.parse_args()
     return args

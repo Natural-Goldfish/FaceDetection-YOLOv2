@@ -157,14 +157,9 @@ class Yolo(torch.nn.Module):
         output_1 = self.conv_layer_d1(output_1)
         output_1 = self.conv_layer_d2(output_1)
         
-        output_2 = self.connected_layer(output)                     # Passthrough layer # Ambiguous
+        output_2 = self.connected_layer(output)                     # Passthrough layer
         output_3 = torch.cat((output_1, output_2), 1).contiguous()
         
         output_3 = self.conv_layer_d3(output_3)
         output_3 = self.output_layer(output_3)
-
         return output_3
-
-if __name__ == "__main__" :    
-    myModel = Yolo()
-    summary(myModel, (3, 416, 416))

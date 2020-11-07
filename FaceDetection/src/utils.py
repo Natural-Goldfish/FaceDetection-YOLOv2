@@ -1,5 +1,6 @@
 import torch
 import cv2
+import numpy as np
 from torch.utils.data.dataloader import default_collate
 
 
@@ -24,50 +25,33 @@ def iou(B_boxes1, B_boxes2):
     InterSection = inter_w * inter_h
 
     area1, area2 = ((Bb1x2 - Bb1x1) * (Bb1y2 - Bb1y1)).view(-1, 1), ((Bb2x2 - Bb2x1) * (Bb2y2 - Bb2y1)).view(1, -1)
-    #Union = (area1 + area2.t()) - InterSection
     Union = (area1 + area2) - InterSection
-
-
     return InterSection / Union
 
-def pred_boxes(output, num_anchors = 5, num_classes = 1, num_grid = 13, anchors= []):
-    output = output.view(num_anchors, 5 + num_classes, num_grid * num_grid).contiguous()
+def pred_boxes(output, anchors, num_anchors = 5, num_classes = 1, num_grid = 13):
+    anchors = torch.tensor(anchors).view(-1, 2)
+    output = output.view(1, num_anchors, 5 + num_classes, num_grid * num_grid).contiguous()
+    output = torch.squeeze(output, dim = 0)
 
+    anchors_w = anchors[:, 0].contiguous().view(num_anchors, 1)
+    anchors_h = anchors[:, 1].contiguous().view(num_anchors, 1)
     x_fit = torch.range(0, num_grid -1).repeat(num_grid)
     y_fit = torch.range(0, num_grid -1).repeat(num_grid).view(-1, num_grid).contiguous().transpose(0, 1).contiguous().view(1, -1)
 
-    anchors = torch.tensor(anchors).clone().detach()
-    anchors_w = anchors[:, 0].contiguous().view(-1, 1)
-    anchors_h = anchors[:, 1].contiguous().view(-1, 1)
+    coord_box = torch.zeros_like(output[:, :4, :])
+    coord_box[:, 0, :] = output[:, 0, :].sigmoid() + x_fit
+    coord_box[:, 1, :] = output[:, 1, :].sigmoid() + y_fit
+    coord_box[:, 2, :] = torch.exp(output[:, 2, :]) * anchors_w
+    coord_box[:, 3, :] = torch.exp(output[:, 3, :]) * anchors_h
+    conf_box = output[:, 4, :].sigmoid()
+    cls_box = output[:, 5:, :].sigmoid()
+    return coord_box, conf_box, cls_box
 
-    pred_box = torch.tensor(output).clone().detach().cuda()
-    pred_box[:, 0, :] = output[:, 0, :].sigmoid() + x_fit
-    pred_box[:, 1, :] = output[:, 1, :].sigmoid() + y_fit
-    pred_box[:, 2, :] = torch.exp(output[:, 2, :]) * anchors_w
-    pred_box[:, 3, :] = torch.exp(output[:, 3, :]) * anchors_h
-    pred_box[:, 4, :] = output[:, 4, :].sigmoid()
-    pred_box[:, 5:, :] = output[:, 5:, :].sigmoid()
-
-    return pred_box
-
-def draw_rec(img, min_x, min_y, max_x, max_y):
-
-    for i in range(len(min_x)):
-        img = cv2.rectangle(img, (min_x[i], min_y[i]), (max_x[i], max_y[i]), (255, 0, 0), 3)
-
-    cv2.imshow("sdf", img)
-    cv2.waitKey(0)
-
-def nms(pred_box):
-    pred_box = pred_box.transpose(1, 2).contiguous().view(13*13*5, 6).contiguous().t()
-    mask = pred_box[4, :] > 0.8
-    target = pred_box[:, mask]
-    min_x = target[0, :]*32 - (target[2, :]/2)*32
-    min_y = target[1, :]*32 - (target[3, :]/2)*32
-    max_x = target[0, :]*32 + (target[2, :]/2)*32
-    max_y = target[1, :]*32 + (target[3, :]/2)*32
-    print(pred_box[4,:].max())
-    return min_x, min_y, max_x, max_y
+def test_image_processing(image, image_size):
+    image = cv2.resize(image, (image_size, image_size))
+    image = torch.tensor(np.transpose(image, (2, 0, 1)), dtype = torch.float32)
+    image = image.unsqueeze(0)
+    return image
 
 if __name__ == "__main__":
     help(iou)
